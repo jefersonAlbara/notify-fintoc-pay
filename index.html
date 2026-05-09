@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0c" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Notify · Pago con tu banco</title>
+  <link rel="preconnect" href="https://js.fintoc.com" crossorigin />
+  <link rel="preconnect" href="https://wizard.fintoc.com" crossorigin />
+  <link rel="preconnect" href="https://api.fintoc.com" crossorigin />
+  <style>
+    :root {
+      --bg: #0b0b0c;
+      --surface: #18181b;
+      --surface-2: #252530;
+      --border: #2a2a30;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --accent: #e8364f;
+      --accent-bg: #33201e;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(232, 54, 79, 0.08), transparent 50%),
+        radial-gradient(circle at 80% 100%, rgba(232, 54, 79, 0.04), transparent 50%),
+        var(--bg);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .brand-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--accent-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .brand-name {
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: -0.3px;
+    }
+
+    p.lead {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 24px;
+    }
+
+    .meta {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .meta-row .k { color: var(--muted); }
+    .meta-row .v { color: var(--text); font-weight: 600; }
+
+    .countdown {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .countdown.expired {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+    }
+    .countdown::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    button.primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s ease, transform 0.05s ease;
+      font-family: inherit;
+    }
+    button.primary:hover { filter: brightness(1.08); }
+    button.primary:active { transform: translateY(1px); }
+    button.primary:disabled {
+      background: var(--surface-2);
+      color: var(--muted);
+      cursor: not-allowed;
+      filter: none;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.4;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.info    { background: rgba(232, 54, 79, 0.08); color: var(--accent); border: 1px solid rgba(232, 54, 79, 0.2); }
+    .status.success { background: rgba(34, 197, 94, 0.10); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
+    .status.error   { background: rgba(239, 68, 68, 0.10); color: var(--danger);  border: 1px solid rgba(239, 68, 68, 0.2); }
+
+    footer {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+      text-align: center;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+
+    .skeleton {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      padding: 20px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 2.5px solid var(--surface-2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .card { padding: 24px 20px; }
+      h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <div class="brand">
+      <div class="brand-dot">N</div>
+      <div class="brand-name">Notify</div>
+    </div>
+
+    <h1 id="title">Confirma tu pago</h1>
+    <p class="lead" id="lead">Vas a ser redirigido al sitio de tu banco para autorizar la transferencia. El pago se procesa de forma instantánea.</p>
+
+    <div class="meta" id="meta" hidden>
+      <div class="meta-row">
+        <span class="k">Monto</span>
+        <span class="v" id="meta-amount">—</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Comercio</span>
+        <span class="v" id="meta-merchant">—</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Expira en</span>
+        <span class="countdown" id="countdown">--:--</span>
+      </div>
+    </div>
+
+    <div id="loading" class="skeleton">
+      <div class="spinner"></div>
+      <div>Cargando datos del pago…</div>
+    </div>
+
+    <button id="pay" class="primary" hidden>Pagar con mi banco</button>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+
+    <footer>
+      Pago procesado de forma segura por <strong>Fintoc</strong> y <strong>Mercado Pago</strong>.<br>
+      Este enlace es de uso único y expira automáticamente.
+    </footer>
+  </main>
+
+  <script src="https://js.fintoc.com/v1"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const params = new URLSearchParams(location.search);
+      const widgetToken = params.get('wt');
+      const publicKey   = params.get('pk');
+      const holderType  = params.get('ht') || 'individual';
+      const product     = params.get('pr') || 'payments';
+
+      const $title    = document.getElementById('title');
+      const $lead     = document.getElementById('lead');
+      const $meta     = document.getElementById('meta');
+      const $amount   = document.getElementById('meta-amount');
+      const $merchant = document.getElementById('meta-merchant');
+      const $countdown = document.getElementById('countdown');
+      const $loading  = document.getElementById('loading');
+      const $pay      = document.getElementById('pay');
+      const $status   = document.getElementById('status');
+
+      function showStatus(kind, msg) {
+        $status.className = 'status show ' + kind;
+        $status.textContent = msg;
+      }
+
+      function fatal(msg) {
+        $loading.hidden = true;
+        $pay.hidden = true;
+        $meta.hidden = true;
+        showStatus('error', msg);
+      }
+
+      if (!widgetToken || !publicKey) {
+        fatal('Enlace inválido o incompleto. Solicita uno nuevo al equipo de Notify.');
+        return;
+      }
+
+      // CLP formatter
+      const fmtCLP = new Intl.NumberFormat('es-CL', {
+        style: 'currency', currency: 'CLP', maximumFractionDigits: 0,
+      });
+
+      // Countdown
+      let expiresAt = null;
+      let countdownTimer = null;
+      function startCountdown(iso) {
+        expiresAt = new Date(iso).getTime();
+        const tick = () => {
+          const ms = expiresAt - Date.now();
+          if (ms <= 0) {
+            $countdown.textContent = 'Expirado';
+            $countdown.classList.add('expired');
+            $pay.disabled = true;
+            $pay.textContent = 'Enlace expirado';
+            showStatus('error', 'El enlace de pago expiró. Solicita uno nuevo.');
+            clearInterval(countdownTimer);
+            return;
+          }
+          const m = Math.floor(ms / 60000);
+          const s = Math.floor((ms % 60000) / 1000);
+          $countdown.textContent = `${m}:${String(s).padStart(2, '0')}`;
+        };
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+      }
+
+      // Fetch widget config so we can show the amount + merchant + countdown before opening
+      async function loadConfig() {
+        try {
+          const url = `https://api.fintoc.com/internal/v1/widget_config?product=${encodeURIComponent(product)}&widget_token=${encodeURIComponent(widgetToken)}`;
+          const resp = await fetch(url, { credentials: 'omit' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+
+          const amount = data.amount;
+          if (typeof amount === 'number') $amount.textContent = fmtCLP.format(amount);
+          if (data.company_name) $merchant.textContent = data.company_name;
+          if (data.resource && data.resource.expires_at) startCountdown(data.resource.expires_at);
+
+          $loading.hidden = true;
+          $meta.hidden = false;
+          $pay.hidden = false;
+          $pay.focus();
+        } catch (err) {
+          $loading.hidden = true;
+          $pay.hidden = false;
+          showStatus('info', 'No se pudo cargar el detalle del pago, pero podés continuar.');
+        }
+      }
+
+      function openWidget() {
+        if (typeof Fintoc === 'undefined' || !Fintoc.create) {
+          showStatus('error', 'No se pudo cargar Fintoc. Verifica tu conexión y recarga la página.');
+          return;
+        }
+
+        $pay.disabled = true;
+        $pay.textContent = 'Abriendo banco…';
+
+        const widget = Fintoc.create({
+          holderType,
+          product,
+          publicKey,
+          widgetToken,
+          onSuccess: function (payment) {
+            $title.textContent = 'Pago confirmado';
+            $lead.textContent  = 'Tu transferencia fue procesada exitosamente. Ya podés cerrar esta ventana.';
+            $pay.hidden = true;
+            $meta.hidden = true;
+            if (countdownTimer) clearInterval(countdownTimer);
+            showStatus('success', 'Pago aprobado. Recibirás la confirmación por email.');
+          },
+          onExit: function () {
+            $pay.disabled = false;
+            $pay.textContent = 'Pagar con mi banco';
+            showStatus('info', 'Cerraste el pago antes de finalizar. Podés reintentar mientras el enlace siga válido.');
+          },
+        });
+
+        try {
+          widget.open();
+        } catch (err) {
+          $pay.disabled = false;
+          $pay.textContent = 'Pagar con mi banco';
+          showStatus('error', 'No se pudo abrir el widget. Reintentá en unos segundos.');
+        }
+      }
+
+      $pay.addEventListener('click', openWidget);
+
+      // Kick off
+      loadConfig();
+    })();
+  </script>
+</body>
+</html>

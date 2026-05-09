@@ -172,9 +172,18 @@
     (function () {
       'use strict';
 
+      // Public key do Fintoc para o merchant "Mercado Pago" no checkout
+      // Nike CL. Capturada do header `authorization` do request real ao
+      // /internal/v1/widget_config (formato pk_live_*). NAO confundir com a
+      // publicKey do Mercado Pago (APP_USR-*) que vem no appPayload do
+      // gatewayCallback — essa nao e aceita pelo Fintoc.create().
+      const FINTOC_PUBLIC_KEY = 'pk_live_3dbgckKc3uxhHS6WJYyHdkcM3uow_CVQ';
+
       const params = new URLSearchParams(location.search);
       const widgetToken = params.get('wt');
-      const publicKey   = params.get('pk');
+      // pk vem na query so para debug/log; o publicKey usado e o do Fintoc
+      const mpPublicKey = params.get('pk');
+      const publicKey   = params.get('fpk') || FINTOC_PUBLIC_KEY;
       const holderType  = params.get('ht') || 'individual';
       const product     = params.get('pr') || 'payments';
 
@@ -193,7 +202,7 @@
         showStatus('error', msg);
       }
 
-      if (!widgetToken || !publicKey) {
+      if (!widgetToken) {
         fatal('Enlace inválido o incompleto. Solicita uno nuevo al equipo de Notify.');
         return;
       }

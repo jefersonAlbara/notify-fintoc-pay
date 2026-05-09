@@ -5,7 +5,7 @@ Página estática que renderiza o widget [Fintoc](https://fintoc.com) usando o `
 Faz parte do projeto **Notify** ([notify-bot](https://github.com/jefersonAlbara/guadalupe-bot)). Hospedada em produção em:
 
 ```
-https://notifybot.com.br/fintoc/payment/?wt=pi_xxx_sec_yyy&pk=APP_USR-...
+https://notify-fintoc-pay.<workers-subdomain>.workers.dev/?wt=pi_xxx_sec_yyy&pk=APP_USR-...
 ```
 
 ## Como funciona
@@ -32,15 +32,11 @@ https://notifybot.com.br/fintoc/payment/?wt=pi_xxx_sec_yyy&pk=APP_USR-...
 
 ```
 .
-├── fintoc/
-│   └── payment/
-│       └── index.html   # widget + UI dark Notify (#33201e/#e8364f)
-├── _headers             # security headers (Cloudflare Pages / Netlify)
+├── index.html   # widget + UI dark Notify (#33201e/#e8364f)
+├── _headers     # security headers (Cloudflare Pages / Netlify)
 ├── README.md
 └── LICENSE
 ```
-
-A pasta `fintoc/payment/` reflete o path final servido em produção.
 
 ## Segurança
 
@@ -56,42 +52,16 @@ A pasta `fintoc/payment/` reflete o path final servido em produção.
 python -m http.server 8080
 ```
 
-Abrir `http://localhost:8080/fintoc/payment/?wt=pi_test&pk=APP_USR-test`. O widget vai falhar (token falso), mas o layout/contagem/erros são exercitados.
+Abrir `http://localhost:8080/?wt=pi_test&pk=APP_USR-test`. O widget vai falhar (token falso), mas o layout/contagem/erros são exercitados.
 
-## Deploy — Cloudflare Pages (apex `notifybot.com.br`)
+## Deploy — Cloudflare Workers Static Assets
 
-### 1. Conectar repo
-1. https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-2. Selecionar o repo `notify-fintoc-pay`
-3. **Build settings**:
-   - Framework preset: **None**
-   - Build command: *(vazio)*
-   - Build output directory: `/`
-4. **Save and Deploy**
+1. https://dash.cloudflare.com → **Workers & Pages** → **Create** → conectar o repo `notify-fintoc-pay`
+2. Cloudflare auto-detecta o `index.html` na raiz e faz deploy
+3. URL automática: `https://notify-fintoc-pay.<workers-subdomain>.workers.dev/`
+4. (Opcional) Renomear o **workers subdomain** da conta para um nome mais curto: **Workers & Pages** → **Settings** (nível da conta) → **Subdomain**
 
-### 2. Migrar DNS para Cloudflare (necessário para apex)
-Para servir o conteúdo no apex `notifybot.com.br/fintoc/payment`, o DNS precisa estar no Cloudflare (Hostinger não suporta CNAME flattening no apex):
-
-1. Cloudflare → **Websites** → **Add site** → digitar `notifybot.com.br` → plano Free
-2. Cloudflare lista os DNS records atuais — confirma e dá 2 nameservers (ex: `xyz.ns.cloudflare.com`)
-3. Hostinger → **Domínios** → `notifybot.com.br` → **Nameservers** → trocar para os do Cloudflare
-4. Aguarda propagação (1-24h, normalmente <1h)
-5. Cloudflare detecta automaticamente e ativa o site
-
-### 3. Vincular domínio ao Pages
-1. Volta no projeto Pages → **Custom domains** → **Set up a custom domain**
-2. Digita `notifybot.com.br` (apex)
-3. Cloudflare cria automaticamente os DNS records (CNAME flattening interno)
-4. Aguarda status "Active" (poucos minutos)
-5. URL final: `https://notifybot.com.br/fintoc/payment/`
-
-## Atalho — usar subdomínio (sem migração de DNS)
-
-Se preferir não migrar nameservers, use `pay.notifybot.com.br/fintoc/payment` em vez do apex:
-
-1. Pages → Custom domains → adicionar `pay.notifybot.com.br` → copia o CNAME target
-2. Hostinger → DNS → criar CNAME `pay` → `<projeto>.pages.dev`
-3. URL final: `https://pay.notifybot.com.br/fintoc/payment/`
+Push em `main` aciona deploy automático.
 
 ## Deploy — alternativas
 

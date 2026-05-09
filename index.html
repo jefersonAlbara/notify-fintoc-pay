@@ -207,6 +207,48 @@
         return;
       }
 
+      // Bloqueia o estado da pagina apos o link expirar/cancelar — nao
+      // adianta deixar o usuario reintentar, o widget_token vira invalido.
+      function lockExpired(reason) {
+        $title.textContent = 'Enlace expirado';
+        $lead.textContent  = reason
+          ? reason
+          : 'Este enlace de pago ya no es válido. Solicita uno nuevo al equipo de Notify.';
+        $pay.hidden = true;
+        showStatus('error', 'El enlace expira a los 10 minutos o cuando el pago se cancela. Pedí uno nuevo.');
+      }
+
+      // Mapeia o erro da API Fintoc para uma acao de UI.
+      // Formato observado:
+      //   {error: {type, code, message, param, doc_url}}
+      // ou diretamente {type, code, message, ...}
+      function handleFintocError(err) {
+        console.error('[Fintoc] error:', err);
+        const inner = (err && err.error) ? err.error : err || {};
+        const code = inner.code || (err && err.code);
+        const message = inner.message || (err && err.message) || '';
+
+        if (code === 'expired_widget_token' || /expired/i.test(message)) {
+          lockExpired();
+          return;
+        }
+        if (code === 'invalid_widget_token' || /invalid.*token/i.test(message)) {
+          lockExpired('Este enlace de pago no es válido. Solicita uno nuevo al equipo de Notify.');
+          return;
+        }
+        if (code === 'invalid_api_key') {
+          $pay.disabled = false;
+          $pay.textContent = 'Pagar con mi banco';
+          showStatus('error', 'Error de configuración (clave inválida). Avisa al equipo de Notify.');
+          return;
+        }
+
+        // Erro generico — permite reintentar.
+        $pay.disabled = false;
+        $pay.textContent = 'Pagar con mi banco';
+        showStatus('error', message || 'Ocurrió un error al procesar el pago. Reintentá en unos segundos.');
+      }
+
       function openWidget() {
         if (typeof Fintoc === 'undefined' || !Fintoc.create) {
           showStatus('error', 'No se pudo cargar Fintoc. Verifica tu conexión y recarga la página.');
@@ -233,16 +275,40 @@
               $pay.textContent = 'Pagar con mi banco';
               showStatus('info', 'Cerraste el pago antes de finalizar. Podés reintentar mientras el enlace siga válido.');
             },
+            onEvent: function (event) {
+              // Telemetria leve: alguns SDKs do Fintoc emitem eventos
+              // antes do onError quando o token expira (cancel via
+              // /payment_intents/user_expire). Tratamos aqui tambem.
+              console.debug('[Fintoc] event:', event);
+              if (!event) return;
+              const code = event.code || (event.error && event.error.code);
+              if (code === 'expired_widget_token' || code === 'invalid_widget_token') {
+                handleFintocError(event);
+              }
+            },
+            onError: function (err) {
+              handleFintocError(err);
+            },
           });
 
           widget.open();
         } catch (err) {
-          $pay.disabled = false;
-          $pay.textContent = 'Pagar con mi banco';
-          showStatus('error', 'No se pudo abrir el widget. Reintentá en unos segundos.');
-          console.error('[Fintoc] open error:', err);
+          handleFintocError(err);
         }
       }
+
+      // Captura erros nao tratados que podem vir do SDK via window.onerror
+      // ou unhandledrejection (ex: fetch falhando dentro do iframe que
+      // borbulha como rejection no parent).
+      window.addEventListener('unhandledrejection', function (e) {
+        const reason = e && e.reason;
+        if (!reason) return;
+        const code = reason.code || (reason.error && reason.error.code);
+        if (code === 'expired_widget_token' || code === 'invalid_widget_token') {
+          handleFintocError(reason);
+          e.preventDefault();
+        }
+      });
 
       $pay.addEventListener('click', openWidget);
     })();
